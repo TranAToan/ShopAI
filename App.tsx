@@ -3,7 +3,6 @@ import { StatusBar, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 function App(): React.JSX.Element {
-
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" />
