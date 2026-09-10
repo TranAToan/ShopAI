@@ -1,48 +1,42 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, Image, StyleSheet, View } from 'react-native';
+import LottieView from 'lottie-react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ShopButton from '@components/ShopButton';
+import ShopInput from '@components/ui/ShopInput';
+import Typography from '@components/ui/Typography';
+import { COLORS, SIZES } from '@constants/theme';
+import { useCountdown } from '@hooks/useCountdown';
+import { useTheme } from '@contexts/ThemeContext';
 import { fetchSamplePosts, PostItem } from '@services/productApi';
 
 function HomeScreen(): React.JSX.Element {
+  const { t, i18n } = useTranslation();
+  const { colors, isDark, toggleTheme } = useTheme();
   const [keyword, setKeyword] = useState('');
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const aliveRef = useRef(true);
+  const { timeLeft, isFinished } = useCountdown(60);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const data = await fetchSamplePosts();
-      if (aliveRef.current) {
-        setPosts(data);
-      }
+      if (aliveRef.current) setPosts(data);
     } catch {
-      if (aliveRef.current) {
-        setError('Không tải được dữ liệu. Hãy kiểm tra kết nối mạng.');
-      }
+      if (aliveRef.current) setError(t('home.networkError'));
     } finally {
-      if (aliveRef.current) {
-        setLoading(false);
-      }
+      if (aliveRef.current) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     aliveRef.current = true;
     load();
-
     return () => {
       aliveRef.current = false;
     };
@@ -52,61 +46,113 @@ function HomeScreen(): React.JSX.Element {
     post.title.toLowerCase().includes(keyword.toLowerCase()),
   );
 
+  const switchLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi');
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <FlatList
         data={!loading && !error ? filteredPosts : []}
         keyExtractor={item => String(item.id)}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
-            <View style={styles.header}>
-              <Text style={styles.brand}>ShopAI</Text>
-              <Text style={styles.caption}>
-                Sprint 2 - Core Components + Fetch
-              </Text>
+            <View style={[styles.header, { backgroundColor: colors.surface }]}>
+              <Typography variant="h1" color={colors.primary}>
+                {t('home.title')}
+              </Typography>
+              <Typography
+                variant="body2"
+                color={colors.textLight}
+                style={styles.caption}
+              >
+                {t('home.caption')}
+              </Typography>
+              <View style={styles.controls}>
+                <ShopButton
+                  title={isDark ? t('home.lightMode') : t('home.darkMode')}
+                  onPress={toggleTheme}
+                  variant="secondary"
+                  style={styles.controlButton}
+                />
+                <ShopButton
+                  title={t('home.language')}
+                  onPress={switchLanguage}
+                  variant="outline"
+                  textStyle={{ color: colors.primary }}
+                  style={styles.controlButton}
+                />
+              </View>
             </View>
             <Image
               source={{ uri: 'https://picsum.photos/800/200' }}
               style={styles.banner}
               resizeMode="cover"
             />
-            <TextInput
+            <View style={styles.saleRow}>
+              <Typography variant="body2" color={colors.textLight}>
+                {isFinished
+                  ? t('home.expired')
+                  : t('home.sale', { seconds: timeLeft })}
+              </Typography>
+            </View>
+            <ShopInput
               value={keyword}
               onChangeText={setKeyword}
-              placeholder="Tim theo tieu de..."
-              placeholderTextColor="#95A5A6"
-              style={styles.input}
+              placeholder={t('home.search')}
               autoCapitalize="none"
+              containerStyle={styles.inputWrap}
             />
-            <Pressable
+            <ShopButton
+              title={t('home.refresh')}
               onPress={load}
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.buttonText}>Lam moi danh sach</Text>
-            </Pressable>
+              isLoading={loading}
+              style={styles.refresh}
+            />
             {loading && (
-              <ActivityIndicator style={styles.loader} color="#FF4D4F" />
+              <LottieView
+                source={require('@assets/lottie/loading.json')}
+                autoPlay
+                loop
+                style={styles.lottie}
+              />
             )}
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && (
+              <Typography
+                variant="body2"
+                color={COLORS.error}
+                style={styles.error}
+              >
+                {error}
+              </Typography>
+            )}
           </>
         }
         ListEmptyComponent={
           !loading && !error ? (
-            <Text style={styles.empty}>Khong co ket qua cho tu khoa nay</Text>
+            <Typography
+              variant="body2"
+              color={colors.textLight}
+              style={styles.empty}
+            >
+              {t('home.empty')}
+            </Typography>
           ) : undefined
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
+          <View style={[styles.card, { backgroundColor: colors.surface }]}>
+            <Typography variant="h3" color={colors.text} numberOfLines={2}>
               {item.title}
-            </Text>
-            <Text style={styles.cardBody} numberOfLines={2}>
+            </Typography>
+            <Typography
+              variant="body2"
+              color={colors.textLight}
+              numberOfLines={2}
+              style={styles.cardBody}
+            >
               {item.body}
-            </Text>
+            </Typography>
           </View>
         )}
       />
@@ -115,43 +161,26 @@ function HomeScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F5F5' },
+  safe: { flex: 1 },
   content: { paddingBottom: 24 },
-  header: { padding: 16, backgroundColor: '#FFFFFF' },
-  brand: { fontSize: 28, fontWeight: '800', color: '#FF4D4F' },
-  caption: { color: '#7F8C8D', marginTop: 4 },
+  header: { padding: SIZES.padding },
+  caption: { marginTop: 4 },
+  controls: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  controlButton: { flex: 1 },
   banner: { width: '100%', height: 120, marginTop: 8 },
-  input: {
-    margin: 16,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  button: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: '#FF4D4F',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  pressed: { opacity: 0.85 },
-  buttonText: { color: '#FFFFFF', fontWeight: '600' },
-  loader: { marginTop: 24 },
+  saleRow: { alignItems: 'center', paddingTop: 12 },
+  inputWrap: { margin: SIZES.padding, marginBottom: 8 },
+  refresh: { marginHorizontal: SIZES.padding, marginBottom: 8 },
+  lottie: { width: 64, height: 64, alignSelf: 'center' },
+  error: { textAlign: 'center', margin: SIZES.padding },
   card: {
-    marginHorizontal: 16,
+    marginHorizontal: SIZES.padding,
     marginTop: 10,
     padding: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: SIZES.radius,
   },
-  cardTitle: { fontWeight: '700', color: '#2C3E50', marginBottom: 6 },
-  cardBody: { color: '#7F8C8D' },
-  error: { color: '#C0392B', textAlign: 'center', margin: 16 },
-  empty: { textAlign: 'center', color: '#95A5A6', marginTop: 24 },
+  cardBody: { marginTop: 6 },
+  empty: { textAlign: 'center', marginTop: 24 },
 });
 
 export default HomeScreen;

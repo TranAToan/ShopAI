@@ -1,0 +1,15 @@
+{
+  "home": {
+    "title": "ShopAI UI Kit",
+    "caption": "Chuong 3 - Design System",
+    "search": "Tim theo tieu de...",
+    "refresh": "Lam moi danh sach",
+    "darkMode": "Chuyen sang Toi",
+    "lightMode": "Chuyen sang Sang",
+    "language": "English",
+    "sale": "Khuyen mai ket thuc sau: {{seconds}}s",
+    "expired": "Khuyen mai da het han!",
+    "empty": "Khong co ket qua cho tu khoa nay",
+    "networkError": "Khong tai duoc du lieu. Hay kiem tra ket noi mang."
+  }
+}

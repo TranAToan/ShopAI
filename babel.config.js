@@ -18,6 +18,7 @@ module.exports = {
           '@utils': './src/utils',
           '@constants': './src/constants',
           '@contexts': './src/contexts',
+          '@locales': './src/locales',
         },
       },
     ],

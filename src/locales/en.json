@@ -1,0 +1,15 @@
+{
+  "home": {
+    "title": "ShopAI UI Kit",
+    "caption": "Chapter 3 - Design System",
+    "search": "Search by title...",
+    "refresh": "Refresh list",
+    "darkMode": "Switch to dark",
+    "lightMode": "Switch to light",
+    "language": "Tieng Viet",
+    "sale": "Sale ends in: {{seconds}}s",
+    "expired": "The promotion has ended!",
+    "empty": "No results for this keyword",
+    "networkError": "Could not load data. Check your connection."
+  }
+}
