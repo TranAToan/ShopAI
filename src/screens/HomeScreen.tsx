@@ -1,186 +1,186 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, StyleSheet, View } from 'react-native';
-import LottieView from 'lottie-react-native';
-import { useTranslation } from 'react-i18next';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ProductCard from '@components/ProductCard';
 import ShopButton from '@components/ShopButton';
 import ShopInput from '@components/ui/ShopInput';
 import Typography from '@components/ui/Typography';
 import { COLORS, SIZES } from '@constants/theme';
-import { useCountdown } from '@hooks/useCountdown';
+import { MOCK_PRODUCTS } from '@data/mockProducts';
 import { useTheme } from '@contexts/ThemeContext';
-import { fetchSamplePosts, PostItem } from '@services/productApi';
 
 function HomeScreen(): React.JSX.Element {
-  const { t, i18n } = useTranslation();
   const { colors, isDark, toggleTheme } = useTheme();
   const [keyword, setKeyword] = useState('');
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const aliveRef = useRef(true);
-  const { timeLeft, isFinished } = useCountdown(60);
+  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(2000000);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchSamplePosts();
-      if (aliveRef.current) setPosts(data);
-    } catch {
-      if (aliveRef.current) setError(t('home.networkError'));
-    } finally {
-      if (aliveRef.current) setLoading(false);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    aliveRef.current = true;
-    load();
-    return () => {
-      aliveRef.current = false;
-    };
-  }, [load]);
-
-  const filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(keyword.toLowerCase()),
+  const filteredProducts = useMemo(
+    () =>
+      products.filter(
+        product =>
+          product.name.toLowerCase().includes(keyword.toLowerCase()) &&
+          product.price <= maxPrice,
+      ),
+    [keyword, maxPrice, products],
   );
 
-  const switchLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi');
-  };
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setProducts([...MOCK_PRODUCTS].sort(() => Math.random() - 0.5));
+      setRefreshing(false);
+    }, 1500);
+  }, []);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={!loading && !error ? filteredPosts : []}
-        keyExtractor={item => String(item.id)}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
+      <View style={styles.container}>
+        <FlashList
+          data={filteredProducts}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          numColumns={2}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
             <View style={[styles.header, { backgroundColor: colors.surface }]}>
-              <Typography variant="h1" color={colors.primary}>
-                {t('home.title')}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={colors.textLight}
-                style={styles.caption}
-              >
-                {t('home.caption')}
-              </Typography>
-              <View style={styles.controls}>
+              <View style={styles.titleRow}>
+                <View>
+                  <Typography variant="h1" color={colors.primary}>
+                    ShopAI
+                  </Typography>
+                  <Typography variant="body2" color={colors.textLight}>
+                    Khám phá sản phẩm mới
+                  </Typography>
+                </View>
                 <ShopButton
-                  title={isDark ? t('home.lightMode') : t('home.darkMode')}
+                  title={isDark ? 'Sáng' : 'Tối'}
                   onPress={toggleTheme}
                   variant="secondary"
-                  style={styles.controlButton}
-                />
-                <ShopButton
-                  title={t('home.language')}
-                  onPress={switchLanguage}
-                  variant="outline"
-                  textStyle={{ color: colors.primary }}
-                  style={styles.controlButton}
+                  style={styles.themeButton}
                 />
               </View>
-            </View>
-            <Image
-              source={{ uri: 'https://picsum.photos/800/200' }}
-              style={styles.banner}
-              resizeMode="cover"
-            />
-            <View style={styles.saleRow}>
-              <Typography variant="body2" color={colors.textLight}>
-                {isFinished
-                  ? t('home.expired')
-                  : t('home.sale', { seconds: timeLeft })}
+              <View style={styles.searchRow}>
+                <ShopInput
+                  value={keyword}
+                  onChangeText={setKeyword}
+                  placeholder="Tìm sản phẩm..."
+                  autoCapitalize="none"
+                  containerStyle={styles.searchInput}
+                />
+                <ShopButton
+                  title="Lọc"
+                  onPress={() => setFilterVisible(true)}
+                  variant="outline"
+                  textStyle={styles.filterText}
+                  style={styles.filterButton}
+                />
+              </View>
+              <Typography variant="small" color={colors.textLight}>
+                {filteredProducts.length} sản phẩm
               </Typography>
             </View>
-            <ShopInput
-              value={keyword}
-              onChangeText={setKeyword}
-              placeholder={t('home.search')}
-              autoCapitalize="none"
-              containerStyle={styles.inputWrap}
-            />
-            <ShopButton
-              title={t('home.refresh')}
-              onPress={load}
-              isLoading={loading}
-              style={styles.refresh}
-            />
-            {loading && (
-              <LottieView
-                source={require('@assets/lottie/loading.json')}
-                autoPlay
-                loop
-                style={styles.lottie}
-              />
-            )}
-            {error && (
-              <Typography
-                variant="body2"
-                color={COLORS.error}
-                style={styles.error}
-              >
-                {error}
-              </Typography>
-            )}
-          </>
-        }
-        ListEmptyComponent={
-          !loading && !error ? (
+          }
+          ListEmptyComponent={
             <Typography
               variant="body2"
               color={colors.textLight}
               style={styles.empty}
             >
-              {t('home.empty')}
+              Không tìm thấy sản phẩm phù hợp
             </Typography>
-          ) : undefined
-        }
-        renderItem={({ item }) => (
-          <View style={[styles.card, { backgroundColor: colors.surface }]}>
-            <Typography variant="h3" color={colors.text} numberOfLines={2}>
-              {item.title}
-            </Typography>
-            <Typography
-              variant="body2"
-              color={colors.textLight}
-              numberOfLines={2}
-              style={styles.cardBody}
+          }
+        />
+
+        <Modal
+          visible={filterVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setFilterVisible(false)}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setFilterVisible(false)}
+          >
+            <Pressable
+              style={[styles.sheet, { backgroundColor: colors.surface }]}
+              onPress={event => event.stopPropagation()}
             >
-              {item.body}
-            </Typography>
-          </View>
-        )}
-      />
+              <Typography variant="h2" color={colors.text}>
+                Bộ lọc sản phẩm
+              </Typography>
+              <Typography
+                variant="body2"
+                color={colors.textLight}
+                style={styles.filterLabel}
+              >
+                Giá tối đa: {new Intl.NumberFormat('vi-VN').format(maxPrice)} đ
+              </Typography>
+              <View style={styles.filterOptions}>
+                {[1000000, 1500000, 2000000].map(price => (
+                  <ShopButton
+                    key={price}
+                    title={`${price / 1000000} triệu`}
+                    onPress={() => setMaxPrice(price)}
+                    variant={maxPrice === price ? 'primary' : 'outline'}
+                    textStyle={
+                      maxPrice === price ? undefined : styles.filterText
+                    }
+                    style={styles.optionButton}
+                  />
+                ))}
+              </View>
+              <ShopButton
+                title="Áp dụng"
+                onPress={() => setFilterVisible(false)}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  content: { paddingBottom: 24 },
-  header: { padding: SIZES.padding },
-  caption: { marginTop: 4 },
-  controls: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  controlButton: { flex: 1 },
-  banner: { width: '100%', height: 120, marginTop: 8 },
-  saleRow: { alignItems: 'center', paddingTop: 12 },
-  inputWrap: { margin: SIZES.padding, marginBottom: 8 },
-  refresh: { marginHorizontal: SIZES.padding, marginBottom: 8 },
-  lottie: { width: 64, height: 64, alignSelf: 'center' },
-  error: { textAlign: 'center', margin: SIZES.padding },
-  card: {
-    marginHorizontal: SIZES.padding,
-    marginTop: 10,
-    padding: 14,
-    borderRadius: SIZES.radius,
+  safeArea: { flex: 1 },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  listContent: { paddingHorizontal: SIZES.padding / 2, paddingBottom: 24 },
+  header: { padding: SIZES.padding, marginBottom: 12 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  cardBody: { marginTop: 6 },
-  empty: { textAlign: 'center', marginTop: 24 },
+  themeButton: { width: 76 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    gap: 8,
+  },
+  searchInput: { flex: 1, marginBottom: 8 },
+  filterButton: { width: 76, marginTop: 0 },
+  filterText: { color: COLORS.primary },
+  empty: { textAlign: 'center', marginTop: 32 },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  sheet: { padding: 24, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  filterLabel: { marginTop: 16 },
+  filterOptions: { flexDirection: 'row', gap: 8, marginVertical: 20 },
+  optionButton: { flex: 1 },
 });
 
 export default HomeScreen;
