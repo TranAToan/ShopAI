@@ -10,7 +10,7 @@ import { COLORS, SIZES } from '@constants/theme';
 import { MOCK_PRODUCTS } from '@data/mockProducts';
 import { useTheme } from '@contexts/ThemeContext';
 
-function HomeScreen(): React.JSX.Element {
+function HomeScreen({ navigation }: { navigation: any }): React.JSX.Element {
   const { colors, isDark, toggleTheme } = useTheme();
   const [keyword, setKeyword] = useState('');
   const [products, setProducts] = useState(MOCK_PRODUCTS);
@@ -26,6 +26,13 @@ function HomeScreen(): React.JSX.Element {
           product.price <= maxPrice,
       ),
     [keyword, maxPrice, products],
+  );
+
+  const handleOpenProduct = useCallback(
+    (productId: string) => {
+      navigation?.navigate?.('ProductDetail', { productId });
+    },
+    [navigation],
   );
 
   const handleRefresh = useCallback(() => {
@@ -45,12 +52,18 @@ function HomeScreen(): React.JSX.Element {
         <FlashList
           data={filteredProducts}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <ProductCard product={item} />}
+          renderItem={({ item }) => (
+            <ProductCard
+              product={item}
+              onPress={product => handleOpenProduct(product.id)}
+            />
+          )}
           numColumns={2}
           refreshing={refreshing}
           onRefresh={handleRefresh}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             <View style={[styles.header, { backgroundColor: colors.surface }]}>
               <View style={styles.titleRow}>

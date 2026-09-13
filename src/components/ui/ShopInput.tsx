@@ -33,6 +33,9 @@ function ShopInput({
       ) : null}
       <TextInput
         placeholderTextColor={COLORS.textLight}
+        selectionColor={COLORS.primary}
+        autoCorrect={false}
+        autoCapitalize={rest.autoCapitalize ?? 'sentences'}
         style={[
           styles.input,
           error ? styles.inputError : null,

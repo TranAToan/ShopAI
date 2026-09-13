@@ -16,9 +16,10 @@ const CARD_WIDTH = (width - GAP * 3) / 2;
 
 type ProductCardProps = {
   product: Product;
+  onPress?: (product: Product) => void;
 };
 
-function ProductCard({ product }: ProductCardProps): React.JSX.Element {
+function ProductCard({ product, onPress }: ProductCardProps): React.JSX.Element {
   const opacity = useSharedValue(0);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ function ProductCard({ product }: ProductCardProps): React.JSX.Element {
         </Typography>
         <ShopButton
           title="Mua ngay"
-          onPress={() => {}}
+          onPress={() => onPress?.(product)}
           style={styles.button}
           textStyle={styles.buttonText}
         />
@@ -78,4 +79,3 @@ const styles = StyleSheet.create({
 });
 
 export default memo(ProductCard);
-MỌI
