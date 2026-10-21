@@ -8,7 +8,8 @@ import Animated, {
 import ShopButton from '@components/ShopButton';
 import Typography from '@components/ui/Typography';
 import { COLORS, SIZES } from '@constants/theme';
-import { Product } from '@data/mockProducts';
+import type { Product } from '../types/product.schema';
+import { useTheme } from '@contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const GAP = SIZES.padding;
@@ -19,7 +20,11 @@ type ProductCardProps = {
   onPress?: (product: Product) => void;
 };
 
-function ProductCard({ product, onPress }: ProductCardProps): React.JSX.Element {
+function ProductCard({
+  product,
+  onPress,
+}: ProductCardProps): React.JSX.Element {
+  const { colors } = useTheme();
   const opacity = useSharedValue(0);
 
   useEffect(() => {
@@ -29,7 +34,9 @@ function ProductCard({ product, onPress }: ProductCardProps): React.JSX.Element 
   const fadeInStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
-    <Animated.View style={[styles.card, fadeInStyle]}>
+    <Animated.View
+      style={[styles.card, { backgroundColor: colors.surface }, fadeInStyle]}
+    >
       <Image
         source={{ uri: product.image }}
         style={styles.image}
@@ -46,7 +53,7 @@ function ProductCard({ product, onPress }: ProductCardProps): React.JSX.Element 
           }).format(product.price)}
         </Typography>
         <ShopButton
-          title="Mua ngay"
+          title="Xem chi tiết"
           onPress={() => onPress?.(product)}
           style={styles.button}
           textStyle={styles.buttonText}
@@ -72,7 +79,7 @@ const styles = StyleSheet.create({
   },
   image: { width: '100%', height: CARD_WIDTH },
   infoContainer: { padding: 10 },
-  name: { color: COLORS.text, height: 40 },
+  name: { height: 40 },
   price: { fontWeight: '700', marginVertical: 8 },
   button: { height: 36 },
   buttonText: { fontSize: 12 },

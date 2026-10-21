@@ -1,9 +1,6 @@
-export type Product = {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-};
+import type { Product } from '../types/product.schema';
+
+export type { Product } from '../types/product.schema';
 
 const HEADPHONE_IMAGES = [
   'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=900&q=80',

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Typography from './Typography';
 import { COLORS, SIZES } from '@constants/theme';
+import { useTheme } from '@contexts/ThemeContext';
 
 type ShopInputProps = TextInputProps & {
   label?: string;
@@ -24,6 +25,7 @@ function ShopInput({
   style,
   ...rest
 }: ShopInputProps): React.JSX.Element {
+  const { colors, isDark } = useTheme();
   return (
     <View style={[styles.wrap, containerStyle]}>
       {label ? (
@@ -32,19 +34,24 @@ function ShopInput({
         </Typography>
       ) : null}
       <TextInput
-        placeholderTextColor={COLORS.textLight}
+        placeholderTextColor={colors.textLight}
+        keyboardAppearance={isDark ? 'dark' : 'light'}
         selectionColor={COLORS.primary}
         autoCorrect={false}
         autoCapitalize={rest.autoCapitalize ?? 'sentences'}
         style={[
           styles.input,
-          error ? styles.inputError : null,
+          {
+            backgroundColor: colors.surface,
+            color: colors.text,
+            borderColor: error ? colors.error : colors.border,
+          },
           style as StyleProp<TextStyle>,
         ]}
         {...rest}
       />
       {error ? (
-        <Typography variant="small" color={COLORS.error} style={styles.error}>
+        <Typography variant="small" color={colors.error} style={styles.error}>
           {error}
         </Typography>
       ) : null}

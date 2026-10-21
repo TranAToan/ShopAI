@@ -15,7 +15,20 @@ buildscript {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("com.google.gms:google-services:4.5.0")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.8")
+    }
+}
+
+// AGP 9 disables library BuildConfig by default. expo-log-box declares a
+// BuildConfig field, so enable the feature for that module alone.
+subprojects { module ->
+    if (module.name == "expo-log-box") {
+        module.pluginManager.withPlugin("com.android.library") {
+            module.extensions.getByName("android").buildFeatures.buildConfig = true
+        }
     }
 }
 
 apply plugin: "com.facebook.react.rootproject"
+apply plugin: "expo-root-project"

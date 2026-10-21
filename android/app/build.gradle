@@ -2,6 +2,26 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+def shopEnv = findProperty('shopEnvironment') ?: System.getenv('APP_ENV') ?: 'staging'
+if (!(shopEnv in ['development','staging','production'])) throw new GradleException('Invalid shopEnvironment')
+def shopApiUrl = findProperty('shopApiUrl') ?: System.getenv('SHOP_API_URL') ?: ''
+if (shopEnv == 'production' && !shopApiUrl.startsWith('https://')) throw new GradleException('Production requires -PshopApiUrl=https://REAL_BACKEND')
+def firebaseConfig = file('google-services.json')
+def firebaseReady = firebaseConfig.exists()
+if (firebaseReady) {
+    def config = new groovy.json.JsonSlurper().parse(firebaseConfig)
+    if (!config.client.any { it.client_info.android_client_info.package_name == 'com.shopai1app' }) throw new GradleException('Firebase package mismatch: expected com.shopai1app')
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+}
+def easId = findProperty('shopExpoProjectId') ?: System.getenv('EXPO_PROJECT_ID') ?: ''
+def otaReady = easId ==~ /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/
+def signingFile = rootProject.file('../secrets/signing.properties')
+def privateSigning = new Properties()
+if (signingFile.exists()) signingFile.withInputStream { privateSigning.load(it) }
+def productionSigning = findProperty('shopSigning') == 'production'
+if (productionSigning && !signingFile.exists()) throw new GradleException('Missing secrets/signing.properties')
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -57,7 +77,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -82,10 +102,35 @@ android {
         applicationId "com.shopai1app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 10100
+        versionName "1.1.0"
+        buildConfigField 'String', 'SHOP_ENVIRONMENT', groovy.json.JsonOutput.toJson(shopEnv)
+        buildConfigField 'String', 'SHOP_API_URL', groovy.json.JsonOutput.toJson(shopApiUrl)
+        buildConfigField 'boolean', 'SHOP_FIREBASE_CONFIGURED', firebaseReady.toString()
+        buildConfigField 'boolean', 'SHOP_UPDATES_CONFIGURED', otaReady.toString()
+        manifestPlaceholders += [usesCleartextTraffic: shopEnv != 'production' ? 'true' : 'false', shopUpdatesEnabled: otaReady.toString(), shopUpdatesUrl: otaReady ? "https://u.expo.dev/${easId}" : '', shopChannel: shopEnv, shopCrashCollection: (firebaseReady && shopEnv != 'development').toString()]
+        externalNativeBuild {
+            cmake {
+                // Hash long object paths before they reach Windows/Ninja's limit.
+                arguments "-DCMAKE_OBJECT_PATH_MAX=240"
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            // Keep generated native files near the workspace root on Windows.
+            buildStagingDirectory rootProject.file("../.cxx")
+        }
     }
     signingConfigs {
+        production {
+            if (signingFile.exists()) {
+                storeFile rootProject.file('../secrets/shopai-release.p12')
+                storePassword privateSigning.getProperty('storePassword')
+                keyAlias 'shopai-release'
+                keyPassword privateSigning.getProperty('keyPassword')
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -100,8 +145,15 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig productionSigning ? signingConfigs.production : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources true
+            if (firebaseReady) {
+                firebaseCrashlytics {
+                    mappingFileUploadEnabled true
+                    nativeSymbolUploadEnabled false
+                }
+            }
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
@@ -115,5 +167,16 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+// Shorten only Gesture Handler's generated binary directory for Windows/Ninja.
+// Source paths and linked target names remain unchanged; this is reapplied by
+// the generating Gradle task on clean builds, without patching node_modules.
+tasks.named("generateAutolinkingNewArchitectureFiles") {
+    inputs.property("shopAiShortCmakePaths", 1)
+    doLast {
+        def cmakeFile = layout.buildDirectory.file("generated/autolinking/src/main/jni/Android-autolinking.cmake").get().asFile
+        cmakeFile.text = cmakeFile.text.replace("rngesturehandler_codegen_autolinked_build", "gh")
     }
 }

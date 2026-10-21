@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { FlashList } from '@shopify/flash-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ProductCard from '@components/ProductCard';
@@ -7,16 +8,33 @@ import ShopButton from '@components/ShopButton';
 import ShopInput from '@components/ui/ShopInput';
 import Typography from '@components/ui/Typography';
 import { COLORS, SIZES } from '@constants/theme';
-import { MOCK_PRODUCTS } from '@data/mockProducts';
 import { useTheme } from '@contexts/ThemeContext';
+import { fetchProductsPage } from '@services/productApi';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { HomeStackParamList } from '@navigation/HomeStackNavigator';
+import LocationBadge from '@components/LocationBadge';
+import { testCrashInDevelopment } from '@services/telemetry';
+import { APP_VERSION, APP_ENV } from '@constants/env';
 
-function HomeScreen({ navigation }: { navigation: any }): React.JSX.Element {
+function HomeScreen({
+  navigation,
+  route,
+}: NativeStackScreenProps<HomeStackParamList, 'Home'>): React.JSX.Element {
+  const scannedCode = route.params?.scannedCode;
   const { colors, isDark, toggleTheme } = useTheme();
   const [keyword, setKeyword] = useState('');
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
-  const [refreshing, setRefreshing] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [maxPrice, setMaxPrice] = useState(2000000);
+  const productsQuery = useInfiniteQuery({
+    queryKey: ['products'],
+    queryFn: ({ pageParam }) => fetchProductsPage(pageParam),
+    initialPageParam: 0,
+    getNextPageParam: lastPage => lastPage.nextPage,
+  });
+  const products = useMemo(
+    () => productsQuery.data?.pages.flatMap(page => page.products) ?? [],
+    [productsQuery.data],
+  );
 
   const filteredProducts = useMemo(
     () =>
@@ -30,25 +48,17 @@ function HomeScreen({ navigation }: { navigation: any }): React.JSX.Element {
 
   const handleOpenProduct = useCallback(
     (productId: string) => {
-      navigation?.navigate?.('ProductDetail', { productId });
+      navigation.navigate('ProductDetail', { productId });
     },
     [navigation],
   );
-
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setProducts([...MOCK_PRODUCTS].sort(() => Math.random() - 0.5));
-      setRefreshing(false);
-    }, 1500);
-  }, []);
 
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: colors.background }]}
       edges={['top', 'left', 'right']}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlashList
           data={filteredProducts}
           keyExtractor={item => item.id}
@@ -59,58 +69,140 @@ function HomeScreen({ navigation }: { navigation: any }): React.JSX.Element {
             />
           )}
           numColumns={2}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
+          refreshing={productsQuery.isRefetching}
+          onRefresh={() => productsQuery.refetch()}
+          onEndReached={() => {
+            if (
+              productsQuery.hasNextPage &&
+              !productsQuery.isFetchingNextPage
+            ) {
+              productsQuery.fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.5}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
-            <View style={[styles.header, { backgroundColor: colors.surface }]}>
-              <View style={styles.titleRow}>
-                <View>
-                  <Typography variant="h1" color={colors.primary}>
-                    ShopAI
-                  </Typography>
-                  <Typography variant="body2" color={colors.textLight}>
-                    Khám phá sản phẩm mới
-                  </Typography>
+            <>
+              <View
+                style={[styles.header, { backgroundColor: colors.surface }]}
+              >
+                <View style={styles.titleRow}>
+                  <View>
+                    <Typography variant="h1" color={colors.primary}>
+                      ShopAI
+                    </Typography>
+                    <Typography variant="body2" color={colors.textLight}>
+                      Khám phá sản phẩm mới
+                    </Typography>
+                  </View>
+                  <ShopButton
+                    title={isDark ? 'Sáng' : 'Tối'}
+                    onPress={toggleTheme}
+                    variant="secondary"
+                    style={styles.themeButton}
+                  />
+                </View>
+                <View style={styles.searchRow}>
+                  <ShopInput
+                    value={keyword}
+                    onChangeText={setKeyword}
+                    placeholder="Tìm sản phẩm..."
+                    autoCapitalize="none"
+                    containerStyle={styles.searchInput}
+                  />
+                  <ShopButton
+                    title="Lọc"
+                    onPress={() => setFilterVisible(true)}
+                    variant="outline"
+                    textStyle={styles.filterText}
+                    style={styles.filterButton}
+                  />
                 </View>
                 <ShopButton
-                  title={isDark ? 'Sáng' : 'Tối'}
-                  onPress={toggleTheme}
-                  variant="secondary"
-                  style={styles.themeButton}
-                />
-              </View>
-              <View style={styles.searchRow}>
-                <ShopInput
-                  value={keyword}
-                  onChangeText={setKeyword}
-                  placeholder="Tìm sản phẩm..."
-                  autoCapitalize="none"
-                  containerStyle={styles.searchInput}
+                  title="Hỏi AI"
+                  onPress={() => navigation.navigate('AIChat')}
+                  style={styles.scanButton}
                 />
                 <ShopButton
-                  title="Lọc"
-                  onPress={() => setFilterVisible(true)}
-                  variant="outline"
-                  textStyle={styles.filterText}
-                  style={styles.filterButton}
+                  title="Quét Mã"
+                  variant="secondary"
+                  onPress={() => navigation.navigate('Scanner')}
+                  style={styles.scanButton}
                 />
+                <Typography variant="small" color={colors.textLight}>
+                  {filteredProducts.length} sản phẩm
+                </Typography>
               </View>
-              <Typography variant="small" color={colors.textLight}>
-                {filteredProducts.length} sản phẩm
-              </Typography>
-            </View>
+              <LocationBadge />
+              {scannedCode && (
+                <View
+                  style={[
+                    styles.scanResult,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                  accessibilityLiveRegion="polite"
+                >
+                  <Typography variant="small" color={colors.primary}>
+                    Mã vừa quét
+                  </Typography>
+                  <Typography variant="body1">{scannedCode}</Typography>
+                </View>
+              )}
+            </>
           }
           ListEmptyComponent={
-            <Typography
-              variant="body2"
-              color={colors.textLight}
-              style={styles.empty}
-            >
-              Không tìm thấy sản phẩm phù hợp
-            </Typography>
+            productsQuery.isError ? (
+              <View>
+                <Typography color={colors.error}>
+                  Không tải được sản phẩm. Kiểm tra kết nối máy chủ.
+                </Typography>
+                <ShopButton
+                  title="Thử lại"
+                  onPress={() => {
+                    void productsQuery.refetch();
+                  }}
+                />
+              </View>
+            ) : (
+              <Typography
+                variant="body2"
+                color={colors.textLight}
+                style={styles.empty}
+              >
+                Không tìm thấy sản phẩm phù hợp
+              </Typography>
+            )
+          }
+          ListFooterComponent={
+            productsQuery.isFetchingNextPage ? (
+              <Typography
+                variant="small"
+                color={colors.textLight}
+                style={styles.empty}
+              >
+                Đang tải thêm sản phẩm...
+              </Typography>
+            ) : (
+              <Pressable
+                delayLongPress={2000}
+                onLongPress={
+                  __DEV__
+                    ? () => {
+                        void testCrashInDevelopment();
+                      }
+                    : undefined
+                }
+              >
+                <Typography variant="small">
+                  ShopAI {APP_VERSION} · {APP_ENV}
+                </Typography>
+              </Pressable>
+            )
           }
         />
 
@@ -175,6 +267,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   themeButton: { width: 76 },
+  scanButton: { marginBottom: 12 },
+  scanResult: {
+    padding: SIZES.padding,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderRadius: SIZES.radius,
+    gap: 4,
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

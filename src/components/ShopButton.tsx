@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Typography from '@components/ui/Typography';
 import { COLORS, SIZES } from '@constants/theme';
+import { useTheme } from '@contexts/ThemeContext';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline';
 
@@ -33,7 +34,12 @@ function ShopButton({
   textStyle,
   accessibilityLabel,
 }: ShopButtonProps): React.JSX.Element {
-  const textColor = variant === 'outline' ? COLORS.primary : COLORS.surface;
+  const { colors } = useTheme();
+  const textColor = disabled
+    ? colors.textLight
+    : variant === 'outline'
+    ? colors.primary
+    : '#FFFFFF';
 
   return (
     <TouchableOpacity
@@ -41,6 +47,7 @@ function ShopButton({
         styles.button,
         styles[variant],
         disabled && styles.disabled,
+        disabled && { backgroundColor: colors.border },
         style,
       ]}
       onPress={onPress}

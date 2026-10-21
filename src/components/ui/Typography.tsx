@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { StyleProp, Text, TextStyle } from 'react-native';
-import { COLORS, FONTS } from '@constants/theme';
+import { FONTS } from '@constants/theme';
+import { useTheme } from '@contexts/ThemeContext';
 
 type TypographyProps = {
   children: React.ReactNode;
@@ -13,14 +14,15 @@ type TypographyProps = {
 function Typography({
   children,
   variant = 'body1',
-  color = COLORS.text,
+  color,
   style,
   numberOfLines,
 }: TypographyProps): React.JSX.Element {
+  const { colors } = useTheme();
   return (
     <Text
       numberOfLines={numberOfLines}
-      style={[FONTS[variant], { color }, style]}
+      style={[FONTS[variant], { color: color ?? colors.text }, style]}
     >
       {children}
     </Text>

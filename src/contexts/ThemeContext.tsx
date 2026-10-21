@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { COLORS } from '@constants/theme';
 
 const LIGHT_COLORS = {
+  ...COLORS,
   background: COLORS.background,
   surface: COLORS.surface,
   text: COLORS.text,
@@ -10,12 +11,17 @@ const LIGHT_COLORS = {
 };
 
 const DARK_COLORS = {
+  ...COLORS,
   background: '#121212',
   surface: '#1E1E1E',
   text: '#F5F5F5',
   textLight: '#B0B7BD',
   primary: COLORS.primary,
+  border: '#383838',
+  error: '#FF7875',
 };
+
+export type ThemeColors = typeof LIGHT_COLORS;
 
 type ThemeContextValue = {
   isDark: boolean;

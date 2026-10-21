@@ -1,0 +1,13 @@
+node_modules/
+ShopAI1App/
+react-native-thuc-chien-main/
+.shopai-backups/
+.npm-cache/
+.npm-global/
+.cxx/
+android/
+ios/
+coverage/
+
+shopai-backend/
+artifacts/

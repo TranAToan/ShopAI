@@ -1,17 +1,27 @@
-export type PostItem = {
-  id: number;
-  title: string;
-  body: string;
-};
-
-export async function fetchSamplePosts(): Promise<PostItem[]> {
-  const response = await fetch(
-    'https://jsonplaceholder.typicode.com/posts?_limit=10',
-  );
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+﻿import axiosClient from '@api/axiosClient';
+import { ProductListSchema, ProductSchema } from '../types/product.schema';
+import { reportFailure } from './telemetry';
+export async function fetchProductsPage(page: number) {
+  try {
+    const products = ProductListSchema.parse(
+      (await axiosClient.get('/api/products')).data,
+    );
+    const start = page * 10;
+    return {
+      products: products.slice(start, start + 10),
+      nextPage: start + 10 < products.length ? page + 1 : undefined,
+    };
+  } catch (error) {
+    reportFailure('ProductFetchFailed');
+    throw error;
   }
-
-  return response.json();
+}
+export async function fetchProduct(id: string, signal?: AbortSignal) {
+  return ProductSchema.parse(
+    (
+      await axiosClient.get(`/api/products/${encodeURIComponent(id)}`, {
+        signal,
+      })
+    ).data,
+  );
 }

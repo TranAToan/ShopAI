@@ -1,0 +1,36 @@
+// Expo SDK 57's Gradle plugins request Kotlin 2.1.20, which cannot read
+// Gradle 9.4.1's embedded Kotlin 2.3 metadata. Use the app's existing 2.2.0
+// compiler for only these included plugin builds. No dependency source patch,
+// Gradle/RN upgrade, or metadata-version suppression is needed.
+def shopAiCompatSources = new File(initscript.sourceFile.parentFile, 'expo-compat-src')
+gradle.beforeSettings { settings ->
+    def path = settings.settingsDir.canonicalPath.replace('\\', '/')
+    if (path.endsWith('/expo-modules-autolinking/android/expo-gradle-plugin') ||
+        path.endsWith('/expo-modules-core/expo-module-gradle-plugin') ||
+        path.endsWith('/expo-dev-launcher/expo-dev-launcher-gradle-plugin')) {
+        settings.pluginManagement.resolutionStrategy.eachPlugin {
+            if (requested.id.id == 'org.jetbrains.kotlin.jvm' && requested.version == '2.1.20') {
+                useVersion('2.2.0')
+            }
+        }
+    }
+}
+
+gradle.beforeProject { project ->
+    def path = project.rootDir.canonicalPath.replace('\\', '/')
+    if (path.endsWith('/expo-modules-core/expo-module-gradle-plugin')) {
+        project.afterEvaluate {
+            def kotlinSources = project.extensions.getByName('kotlin').sourceSets.getByName('main').kotlin
+            kotlinSources.exclude('**/AndroidLibraryExtension.kt')
+            kotlinSources.srcDir(shopAiCompatSources)
+        }
+        project.configurations.configureEach {
+            resolutionStrategy.eachDependency { details ->
+                if (details.requested.group == 'com.android.tools.build' && details.requested.name == 'gradle') {
+                    details.useVersion('9.2.1')
+                    details.because('Compile Expo plugin against the AGP already used by React Native 0.87.1')
+                }
+            }
+        }
+    }
+}

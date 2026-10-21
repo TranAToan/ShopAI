@@ -14,10 +14,12 @@
       "@data/*": ["src/data/*"],
       "@utils/*": ["src/utils/*"],
       "@constants/*": ["src/constants/*"],
-      "@contexts/*": ["src/contexts/*"]
-      ,"@locales/*": ["src/locales/*"]
+      "@types/*": ["src/types/*"],
+      "@contexts/*": ["src/contexts/*"],
+      "@locales/*": ["src/locales/*"],
+      "@api/*": ["src/api/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "__tests__/**/*.ts", "__tests__/**/*.tsx"],
   "exclude": ["**/node_modules", "**/Pods"]
 }

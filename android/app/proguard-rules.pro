@@ -8,3 +8,8 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+# Preserve the custom PIN bridge and source information used by Crashlytics.
+-keep class com.shopai1app.DeviceCredentialModule { *; }
+-keep class com.shopai1app.ShopSecurityPackage { *; }
+-keepattributes SourceFile,LineNumberTable
+-keepclassmembers class * { @com.facebook.react.bridge.ReactMethod <methods>; }
