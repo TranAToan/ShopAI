@@ -28,7 +28,7 @@ export class AiService {
     try {
       const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
         method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:controller.signal,
-        body:JSON.stringify({systemInstruction:{parts:[{text:this.prompt()}]},contents:[...history.map(h=>({role:h.role,parts:[{text:h.text}]})),{role:'user',parts:[{text:dto.message}]}],generationConfig:{temperature:0.4,maxOutputTokens:400,topP:0.9}}),
+        body:JSON.stringify({systemInstruction:{parts:[{text:this.prompt()}]},contents:[...history.map(h=>({role:h.role,parts:[{text:h.text}]})),{role:'user',parts:[{text:dto.message}]}],generationConfig:{temperature:0.4,maxOutputTokens:200,topP:0.9}}),
       });
       if(res.status===429) throw new HttpException('AI đang bận, thử lại sau',429);
       if(!res.ok) throw new BadGatewayException('Nhà cung cấp AI tạm thời không khả dụng');
@@ -38,7 +38,7 @@ export class AiService {
       if(data.promptFeedback?.blockReason || !reply || !['STOP','MAX_TOKENS'].includes(candidate?.finishReason || '')) throw new BadGatewayException('Chưa có câu trả lời phù hợp');
       return {reply};
     } catch(error) {
-      if(controller.signal.aborted) throw new GatewayTimeoutException('AI phản hồi quá lâu');
+      if(controller.signal.aborted) throw new GatewayTimeoutException('AI phản hồi hơi lâu, bạn thử lại nhé.');
       if(error instanceof HttpException) throw error;
       throw new BadGatewayException('Không kết nối được nhà cung cấp AI');
     } finally { clearTimeout(timer); }

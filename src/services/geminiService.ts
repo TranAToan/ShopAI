@@ -98,7 +98,7 @@ export function toFriendlyError(error: unknown): string {
     return 'Dịch vụ tư vấn chưa sẵn sàng. Bạn thử lại sau nhé.';
   }
   if (error.code === 'timeout') {
-    return 'Trợ lý phản hồi hơi lâu. Bạn thử lại sau nhé.';
+    return 'AI phản hồi hơi lâu, bạn thử lại nhé.';
   }
   if (error.code === 'cancelled') {
     return 'Yêu cầu đã được hủy.';

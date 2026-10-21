@@ -13,6 +13,7 @@ test('server sends verified catalog and history, excludes thought text',async()=
   assert.equal(payload.contents.length,3);assert.equal(payload.contents[2].parts[0].text,'price?');
   assert.match(payload.systemInstruction.parts[0].text,/backend_prod_0/);
   assert.match(payload.systemInstruction.parts[0].text,/1000000/);
+  assert.deepEqual(payload.generationConfig,{temperature:0.4,maxOutputTokens:200,topP:0.9});
 });
 test('provider 429, safety block and offline become sanitized HTTP errors',async()=>{
   global.fetch=async()=>({ok:false,status:429});
@@ -30,5 +31,5 @@ test('invalid alternating history is rejected before contacting provider',async(
 test('provider timeout aborts fetch and becomes HTTP 504',async()=>{
   global.setTimeout=(callback,ms,...args)=>originalTimeout(callback,ms===25000?1:ms,...args);
   global.fetch=async(_url,options)=>new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('aborted'))));
-  await assert.rejects(service().chat({message:'test'}),error=>error.getStatus()===504);
+  await assert.rejects(service().chat({message:'test'}),error=>error.getStatus()===504 && error.message==='AI phản hồi hơi lâu, bạn thử lại nhé.');
 });
