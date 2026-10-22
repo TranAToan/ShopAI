@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: shopai-backend
+    runtime: docker
+    plan: 0.5c-512mb
+    region: singapore
+    dockerfilePath: ./shopai-backend/Dockerfile
+    dockerContext: ./shopai-backend
+    healthCheckPath: /api/health
+    disk:
+      name: shopai-sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        value: file:/var/data/shopai.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: RATE_LIMIT
+        value: "120"
+      - key: AI_RATE_LIMIT
+        value: "5"

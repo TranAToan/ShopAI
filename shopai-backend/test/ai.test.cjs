@@ -8,11 +8,11 @@ const service=()=>new AiService({get:key=>({GEMINI_API_KEY:'private-test-key',GE
 afterEach(()=>{global.fetch=original;global.setTimeout=originalTimeout;});
 test('server sends verified catalog and history, excludes thought text',async()=>{
   let payload;
-  global.fetch=async(_url,options)=>{payload=JSON.parse(options.body);return {ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:'hidden',thought:true},{text:'1.000.000 VND'}]}}]})};};
-  assert.deepEqual(await service().chat({message:'price?',history:[{role:'user',text:'previous'},{role:'model',text:'reply'}]}),{reply:'1.000.000 VND'});
+  global.fetch=async(_url,options)=>{payload=JSON.parse(options.body);return {ok:true,status:200,json:async()=>({candidates:[{finishReason:'STOP',content:{parts:[{text:'hidden',thought:true},{text:'6.990.000 VND'}]}}]})};};
+  assert.deepEqual(await service().chat({message:'price?',history:[{role:'user',text:'previous'},{role:'model',text:'reply'}]}),{reply:'6.990.000 VND'});
   assert.equal(payload.contents.length,3);assert.equal(payload.contents[2].parts[0].text,'price?');
   assert.match(payload.systemInstruction.parts[0].text,/backend_prod_0/);
-  assert.match(payload.systemInstruction.parts[0].text,/1000000/);
+  assert.match(payload.systemInstruction.parts[0].text,/6990000/);
   assert.deepEqual(payload.generationConfig,{temperature:0.4,maxOutputTokens:200,topP:0.9});
 });
 test('provider 429, safety block and offline become sanitized HTTP errors',async()=>{

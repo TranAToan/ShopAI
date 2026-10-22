@@ -59,7 +59,7 @@ test('missing, forged and expired JWT rejected',async()=>{
     assert.equal((await request('/api/orders','GET',undefined,bad)).status,401);
   }
 });
-const valid={items:[{productId:'backend_prod_0',quantity:2}],total:2000000};
+const valid={items:[{productId:'backend_prod_0',quantity:2}],total:13980000};
 test('reject forged total, fractional/negative quantities, missing products and extra fields',async()=>{
   for(const bad of [{...valid,total:1},{items:[{productId:'backend_prod_0',quantity:1.5}],total:1500000},{items:[{productId:'backend_prod_0',quantity:-1}],total:1},{items:[{productId:'missing',quantity:1}],total:1},{...valid,isAdmin:true},{items:[],total:1}]) {
     assert.equal((await request('/api/orders','POST',bad)).status,400);
@@ -69,7 +69,7 @@ test('create PENDING with snapshot, concurrent replay idempotent, mismatched rep
   const key={'Idempotency-Key':'test_order_request_001'};
   const [a,b]=await Promise.all([request('/api/orders','POST',valid,token,key),request('/api/orders','POST',valid,token,key)]);
   assert.equal(a.status,201);assert.equal(b.status,201);assert.equal(a.data.id,b.data.id);
-  orderId=a.data.id;assert.equal(a.data.status,'PENDING');assert.equal(a.data.items[0].price,1000000);
+  orderId=a.data.id;assert.equal(a.data.status,'PENDING');assert.equal(a.data.items[0].price,6990000);
   assert.equal((await request('/api/orders')).data.length,1);
   assert.equal((await request('/api/orders','POST',{...valid,total:5},token,key)).status,409);
 });

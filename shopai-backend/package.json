@@ -43,5 +43,11 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.0": true,
+    "@prisma/engines@6.19.0": true,
+    "bcrypt@6.0.0": true,
+    "prisma@6.19.0": true
   }
 }
